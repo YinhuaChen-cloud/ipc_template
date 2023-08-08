@@ -1,10 +1,16 @@
 PHONY: run
 run:
-	gcc instrument.c -o instrument
-	gcc fuzz.c -o fuzz
+	gcc -g instrument.c -o instrument
+	gcc -g fuzz.c -o fuzz
 	./fuzz
+
+PHONY: gdb
+gdb:
+	gcc -g instrument.c -o instrument
+	gcc -g fuzz.c -o fuzz
+	gdb ./fuzz
 
 PHONY: clean
 clean:
-	rm fuzz instrument
+	-rm fuzz instrument
 
