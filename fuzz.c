@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -12,6 +13,30 @@
 #define FUZZ1 "cyhfuzz1"
 #define FUZZ2 "cyhfuzz2"
 
+// 用来分配和使用共享内存的变量
+int shmid;
+char *shm;
+
+void signalHandler(int signal) {
+    if (signal == SIGINT) {
+        printf("Received Ctrl+C signal - QUIT!\n");
+
+        // 断开与共享内存段的连接
+        shmdt(shm);
+
+        // 删除共享内存段
+        shmctl(shmid, IPC_RMID, NULL);
+
+        // 删除命名管道
+        unlink(PIPE_NAME);
+
+        exit(0);
+
+    } else {
+        printf("unsupported signal!\n");
+    }
+}
+
 int main() {
     // 用于打开命名管道的文件描述符
     int fd;      
@@ -20,9 +45,7 @@ int main() {
     // 用来存放子进程发送的 nrbb，也是用于决定共享内存大小的依据
     long long nrbb = 0;
     // 用来分配和使用共享内存的变量
-    int shmid;
     key_t key;
-    char *shm;
 
     // 创建命名管道
     mkfifo(PIPE_NAME, 0777);
@@ -87,12 +110,10 @@ int main() {
         return 1;
     }
 
-    // TODO: 设置信号处理：接收到 ctrl+c 和 ctrl + d 时，要删除共享内存和命名管道，随后退出程序
+    // 设置信号处理：接收到 ctrl+c 时，要删除共享内存和命名管道，随后退出程序
+    signal(SIGINT, signalHandler);  // 处理Ctrl+C信号
 
-    int count = 0;
-    while(count < 10) {
-        count++;
-        printf("count = %d\n", count);
+    while(1) {
 
         // Fork a child process
         pid = fork();
@@ -147,20 +168,7 @@ int main() {
         }
     }
 
-    // 断开与共享内存段的连接
-    shmdt(shm);
-
-    // 删除共享内存段
-    shmctl(shmid, IPC_RMID, NULL);
-
-    // 删除命名管道
-    unlink(PIPE_NAME);
-
-    // 发送信号告知子进程已经分配好了共享内存，可以开始对共享内存写入数据了
-    // printf("parent process: waiting for sending SIGUSR1 to child\n");
-    // sleep(5);
-    // kill(pid, SIGUSR1);
-
-    return 0;
+    printf("error, code should not reach here\n");
+    return -1;
 }
 
