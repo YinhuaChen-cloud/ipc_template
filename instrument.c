@@ -15,7 +15,7 @@
 
 int main(int argc, char *argv[]) {
     int fd;      // 父子进程用于打开命名管道的文件描述符
-    long long nrbb = 0; // 子进程传递的 nrbb
+    long long nrbb = 512; // 子进程传递的 nrbb
     sigset_t set;
     int sig;
 
@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
     for(int i = 0; i < argc; i++) {
         if(strcmp(argv[i], FUZZ1) == 0)
             executeType = 1;
-        if(strcmp(argv[i], FUZZ1) == 0)
+        if(strcmp(argv[i], FUZZ2) == 0)
             executeType = 2;
     }
     assert(executeType == 1 || executeType == 2);
@@ -39,7 +39,6 @@ int main(int argc, char *argv[]) {
             return 1;
         }
         // 从标准输入读取用户输入，并写入命名管道
-        nrbb = 512;
         write(fd, &nrbb, sizeof(nrbb));
         // 关闭命名管道和文件描述符
         close(fd);
@@ -69,9 +68,15 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
+        // 打印共享内存段里的内容
+        for(int i = 0; i < nrbb; i++)
+            printf("%c ", shm[i]);
+        printf("\n");
+
+
         // 给共享内存的 512 个字节都赋值为 'a'
         for(int i = 0; i < nrbb; i++)
-            shm[i] = 'a';
+            shm[i] = 'x';
 
         // 断开与共享内存段的连接
         shmdt(shm);
